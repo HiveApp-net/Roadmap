@@ -8,7 +8,14 @@
 import Foundation
 
 final class RoadmapViewModel: ObservableObject {
+    enum State {
+        case loading
+        case idle
+    }
+    
     @Published private(set) var features: [RoadmapFeature] = []
+    @Published private(set) var state = State.idle
+    
     private let configuration: RoadmapConfiguration
 
     init(configuration: RoadmapConfiguration) {
@@ -18,11 +25,13 @@ final class RoadmapViewModel: ObservableObject {
 
     func loadFeatures(roadmapJSONURL: URL) {
         Task { @MainActor in
+            self.state = .loading
             if configuration.shuffledOrder {
                 self.features = await FeaturesFetcher(featureJSONURL: roadmapJSONURL).fetch().shuffled()
             } else {
                 self.features = await FeaturesFetcher(featureJSONURL: roadmapJSONURL).fetch()
             }
+            self.state = .idle
         }
     }
 

@@ -24,25 +24,26 @@ struct ContentView: View {
         #endif
     }
 
-    private var roadmapView: some View {
+    private var roadmapView: some View {        
         RoadmapView(
-            configuration: configuration,
-            header: {
+            configuration: configuration) {
                 GroupBox {
                     HStack {
                         Text("You can add a header to introduce your users to your Roadmap.")
                             .padding(10)
                         Spacer()
                     }
-                        .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity)
                 }.padding(.vertical, 20)
-            }, footer: {
+            } footer: {
                 HStack {
                     Spacer()
                     Text("Feature Voting with [Roadmap](https://github.com/AvdLee/Roadmap)")
                     Spacer()
                 }.padding(.vertical, 10)
-            })
+            } loadingPlaceholder: {
+                ProgressView()
+            }
             .navigationTitle("Roadmap Example")
             .toolbar {
                 ToolbarItem {

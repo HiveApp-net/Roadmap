@@ -7,10 +7,19 @@
 
 import SwiftUI
 
-public struct RoadmapView<Header: View, Footer: View>: View {
+public struct RoadmapView<Header: View, Footer: View, LoadingPlaceholder: View>: View {
     @StateObject var viewModel: RoadmapViewModel
     let header: Header
     let footer: Footer
+    let loadingPlaceholder: LoadingPlaceholder
+    
+    var centeredLoadingPlaceholder: some View {
+        HStack {
+            Spacer()
+            loadingPlaceholder
+            Spacer()
+        }
+    }
 
     public var body: some View {
         
@@ -18,10 +27,17 @@ public struct RoadmapView<Header: View, Footer: View>: View {
         if #available(macOS 13.0, *) {
             List {
                 header
-                ForEach(viewModel.features) { feature in
-                    RoadmapFeatureView(viewModel: viewModel.featureViewModel(for: feature))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
+                switch viewModel.state {
+                    case .loading:
+                        centeredLoadingPlaceholder
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                    case .idle:
+                        ForEach(viewModel.features) { feature in
+                            RoadmapFeatureView(viewModel: viewModel.featureViewModel(for: feature))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
                 }
                 footer
             }
@@ -30,10 +46,15 @@ public struct RoadmapView<Header: View, Footer: View>: View {
         } else {
             List {
                 header
-                ForEach(viewModel.features) { feature in
-                    Section {
-                        RoadmapFeatureView(viewModel: viewModel.featureViewModel(for: feature))
-                    }
+                switch viewModel.state {
+                    case .loading:
+                        centeredLoadingPlaceholder
+                    default:
+                        ForEach(viewModel.features) { feature in
+                            Section {
+                                RoadmapFeatureView(viewModel: viewModel.featureViewModel(for: feature))
+                            }
+                        }
                 }
                 footer
             }
@@ -41,9 +62,15 @@ public struct RoadmapView<Header: View, Footer: View>: View {
         #else
         List {
             header
-            ForEach(viewModel.features) { feature in
-                RoadmapFeatureView(viewModel: viewModel.featureViewModel(for: feature))
-                    .listRowSeparator(.hidden)
+            switch viewModel.state {
+                case .loading:
+                    centeredLoadingPlaceholder
+                        .listRowSeparator(.hidden)
+                case .idle:
+                    ForEach(viewModel.features) { feature in
+                        RoadmapFeatureView(viewModel: viewModel.featureViewModel(for: feature))
+                            .listRowSeparator(.hidden)
+                    }
             }
             footer
         }
@@ -51,35 +78,55 @@ public struct RoadmapView<Header: View, Footer: View>: View {
         .listStyle(.plain)
         #endif
     }
-
 }
 
-public extension RoadmapView where Header == EmptyView, Footer == EmptyView {
-    init(configuration: RoadmapConfiguration) {
-        self.init(viewModel: .init(configuration: configuration), header: EmptyView(), footer: EmptyView())
+public extension RoadmapView {
+    init(
+        configuration: RoadmapConfiguration,
+        @ViewBuilder header: () -> Header = { EmptyView() },
+        @ViewBuilder footer: () -> Footer = { EmptyView() },
+        @ViewBuilder loadingPlaceholder: () -> LoadingPlaceholder = { EmptyView() }
+    ) {
+        self.init(
+            viewModel: .init(configuration: configuration),
+            header: header(),
+            footer: footer(),
+            loadingPlaceholder: loadingPlaceholder()
+        )
     }
 }
 
-public extension RoadmapView where Header: View, Footer == EmptyView {
-    init(configuration: RoadmapConfiguration, @ViewBuilder header: () -> Header) {
-        self.init(viewModel: .init(configuration: configuration), header: header(), footer: EmptyView())
-    }
-}
-
-public extension RoadmapView where Header == EmptyView, Footer: View {
-    init(configuration: RoadmapConfiguration, @ViewBuilder footer: () -> Footer) {
-        self.init(viewModel: .init(configuration: configuration), header: EmptyView(), footer: footer())
-    }
-}
-
-public extension RoadmapView where Header: View, Footer: View {
-    init(configuration: RoadmapConfiguration, @ViewBuilder header: () -> Header, @ViewBuilder footer: () -> Footer) {
-        self.init(viewModel: .init(configuration: configuration), header: header(), footer: footer())
-    }
-}
+//public extension RoadmapView where Header == EmptyView, Footer == EmptyView {
+//    init(configuration: RoadmapConfiguration) {
+//        self.init(viewModel: .init(configuration: configuration), header: EmptyView(), footer: EmptyView())
+//    }
+//}
+//
+//public extension RoadmapView where Header: View, Footer == EmptyView {
+//    init(configuration: RoadmapConfiguration, @ViewBuilder header: () -> Header) {
+//        self.init(viewModel: .init(configuration: configuration), header: header(), footer: EmptyView())
+//    }
+//}
+//
+//public extension RoadmapView where Header == EmptyView, Footer: View {
+//    init(configuration: RoadmapConfiguration, @ViewBuilder footer: () -> Footer) {
+//        self.init(viewModel: .init(configuration: configuration), header: EmptyView(), footer: footer())
+//    }
+//}
+//
+//public extension RoadmapView where Header: View, Footer: View {
+//    init(configuration: RoadmapConfiguration, @ViewBuilder header: () -> Header, @ViewBuilder footer: () -> Footer) {
+//        self.init(viewModel: .init(configuration: configuration), header: header(), footer: footer())
+//    }
+//}
 
 struct RoadmapView_Previews: PreviewProvider {
     static var previews: some View {
         RoadmapView(configuration: .sample())
+        
+        RoadmapView(configuration: .sample(), loadingPlaceholder:  {
+            ProgressView()
+        })
+        .previewDisplayName("Custom Loading")
     }
 }
